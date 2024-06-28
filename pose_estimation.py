@@ -18,7 +18,7 @@ def calculate_angle(a, b, c):
 
     return angle
 
-def start_pose_estimation(stop_event):
+def start_pose_estimation_lifting(stop_event):
     counter = 0
     stage = None
 
@@ -29,6 +29,8 @@ def start_pose_estimation(stop_event):
             ret, frame = cap.read()
             if stop_event.is_set():
                 break
+            if frame is None:
+                continue
 
             frame = cv2.flip(frame, 1)
             image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)

@@ -1,7 +1,10 @@
 from flask import Flask, request, jsonify, session, Response
 from models import db, User
 from flask_bcrypt import Bcrypt
-from pose_estimation import start_pose_estimation
+from pose_estimation import start_pose_estimation_lifting
+from lunges import start_pose_estimation_lunges
+from half_jumping_jacks import start_pose_estimation_jacks
+from double_leg_lift import start_pose_estimation_leg_lift
 import threading
 from flask_cors import CORS
 
@@ -82,9 +85,23 @@ def login_user():
 
 @app.route('/video_feed')
 def video_feed():
+    key = request.args.get('key')  # Get the 'key' parameter from the query string
     stop_event.clear()
-    return Response(start_pose_estimation(stop_event),
-                    mimetype='multipart/x-mixed-replace; boundary=frame')
+    
+    if key == 'lifting':
+        return Response(start_pose_estimation_lifting(stop_event),
+                        mimetype='multipart/x-mixed-replace; boundary=frame')
+    elif key == 'lunges':
+        return Response(start_pose_estimation_lunges(stop_event),
+                        mimetype='multipart/x-mixed-replace; boundary=frame')
+    elif key == 'jumping_jacks':
+        return Response(start_pose_estimation_jacks(stop_event),
+                        mimetype='multipart/x-mixed-replace; boundary=frame')
+    elif key == 'double_leg_lift':
+        return Response(start_pose_estimation_leg_lift(stop_event),
+                        mimetype='multipart/x-mixed-replace; boundary=frame')
+    else:
+        return Response("Invalid key", status=400)
 
 @app.route('/stop_video_feed', methods=['POST'])
 def stop_video_feed():
