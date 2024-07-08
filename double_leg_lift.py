@@ -18,7 +18,7 @@ def calculate_angle(a, b, c):
 
     return angle
 
-def start_pose_estimation_lifting(stop_event):
+def start_pose_estimation_leg_lift(stop_event):
     counter = 0
     stage = None
 
@@ -29,6 +29,7 @@ def start_pose_estimation_lifting(stop_event):
             ret, frame = cap.read()
             if stop_event.is_set():
                 break
+
             if frame is None:
                 continue
 
@@ -42,44 +43,62 @@ def start_pose_estimation_lifting(stop_event):
             try:
                 landmarks = results.pose_landmarks.landmark
 
-                shoulder = [landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER.value].x,
-                            landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER.value].y]
-                elbow = [landmarks[mp_pose.PoseLandmark.LEFT_ELBOW.value].x,
-                         landmarks[mp_pose.PoseLandmark.LEFT_ELBOW.value].y]
-                wrist = [landmarks[mp_pose.PoseLandmark.LEFT_WRIST.value].x,
-                         landmarks[mp_pose.PoseLandmark.LEFT_WRIST.value].y]
+                # Get coordinates for the right side
+                right_shoulder = [landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER.value].x,
+                                  landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER.value].y]
+                right_hip = [landmarks[mp_pose.PoseLandmark.RIGHT_HIP.value].x,
+                             landmarks[mp_pose.PoseLandmark.RIGHT_HIP.value].y]
+                right_knee = [landmarks[mp_pose.PoseLandmark.RIGHT_KNEE.value].x,
+                              landmarks[mp_pose.PoseLandmark.RIGHT_KNEE.value].y]
+                right_ankle = [landmarks[mp_pose.PoseLandmark.RIGHT_ANKLE.value].x,
+                               landmarks[mp_pose.PoseLandmark.RIGHT_ANKLE.value].y]
 
-                angle = calculate_angle(shoulder, elbow, wrist)
-                cv2.putText(image, str(angle),
-                            tuple(np.multiply(elbow, [640, 480]).astype(int)),
+                # Calculate angles
+                angle_shoulder_hip_knee = calculate_angle(right_shoulder, right_hip, right_knee)
+                angle_hip_knee_ankle = calculate_angle(right_hip, right_knee, right_ankle)
+
+                # Visualize angles
+                cv2.putText(image, str(angle_shoulder_hip_knee),
+                            tuple(np.multiply(right_knee, [640, 480]).astype(int)),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2, cv2.LINE_AA)
+                cv2.putText(image, str(angle_hip_knee_ankle),
+                            tuple(np.multiply(right_ankle, [640, 480]).astype(int)),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2, cv2.LINE_AA)
 
-                if angle > 160:
+                # Curl counter logic
+                if angle_shoulder_hip_knee > 170 and angle_hip_knee_ankle >= 160:
                     stage = "down"
-                if angle < 30 and stage == 'down':
+
+                if angle_shoulder_hip_knee < 100 and stage == 'down' and angle_hip_knee_ankle >= 160:
                     stage = "up"
                     counter += 1
-                        
-            except:
-                pass
+                    print(counter)
 
-            cv2.rectangle(image, (0, 0), (200, 100), (245, 117, 16), -1)
-            cv2.putText(image, 'REPS', (15, 20), 
+            except Exception as e:
+                print(e)
+
+           # Render curl counter
+            cv2.rectangle(image, (0, 0), (225, 100), (245, 117, 16), -1)
+
+            # Rep data
+            cv2.putText(image, 'REPS', (15, 20),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1, cv2.LINE_AA)
-            cv2.putText(image, str(counter), 
-                        (15, 70), 
-                        cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA)
-            cv2.putText(image, 'STAGE', (90, 20), 
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1, cv2.LINE_AA)
-            cv2.putText(image, stage, 
-                        (90, 70), 
+            cv2.putText(image, str(counter),
+                        (15, 70),
                         cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA)
 
+            # Stage data
+            cv2.putText(image, 'STAGE', (90, 20),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1, cv2.LINE_AA)
+            cv2.putText(image, stage,
+                        (90, 70),
+                        cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA)
+
+            # Render detections
             mp_drawing.draw_landmarks(image, results.pose_landmarks, mp_pose.POSE_CONNECTIONS,
-                                      mp_drawing.DrawingSpec(color=(245, 117, 66), thickness=2, circle_radius=2), 
+                                      mp_drawing.DrawingSpec(color=(245, 117, 66), thickness=2, circle_radius=2),
                                       mp_drawing.DrawingSpec(color=(245, 66, 230), thickness=2, circle_radius=2))
-            
-            
+
             _, buffer = cv2.imencode('.jpg', image)
             frame = buffer.tobytes()
 
