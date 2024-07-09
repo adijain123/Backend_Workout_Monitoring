@@ -108,3 +108,5 @@ def stop_video_feed():
     stop_event.set()
     return 'Video feed stopped', 200
 
+if __name__ == "__main__":
+    app.run()
