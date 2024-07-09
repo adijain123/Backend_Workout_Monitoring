@@ -22,7 +22,7 @@ def start_pose_estimation_lifting(stop_event):
     counter = 0
     stage = None
 
-    cap = cv2.VideoCapture(0)
+    cap = cv2.VideoCapture(-1)
 
     with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as pose:
         while cap.isOpened():
